@@ -41,6 +41,7 @@ const createTodaysGames =async function() {
         const game = await getGameDocument(doc.ref.path);
 
         if (game != null || game !=undefined) {
+          const gameId = game.id;
           functions.logger.log(`Game Returned: 
           ${game.id}, ${JSON.stringify(game)}`);
           // const gameDocRef;
@@ -80,8 +81,10 @@ const createTodaysGames =async function() {
 
           // Competition Document
           const competitionDocument = await getCompetitionDocument(compId);
-          functions.logger.log(`Competition Returned: 
+          if (competitionDocument!=null) {
+            functions.logger.log(`Competition Returned: 
           ${competitionDocument.id}, ${JSON.stringify(competitionDocument)}`);
+          }
 
           // Competition name
           const competitionName = competitionDocument.get("name");
@@ -96,24 +99,88 @@ const createTodaysGames =async function() {
 
           // Team A Document
           const teamADocument = await getTeamDocument(teamAId);
-          functions.logger.log(`Team A Returned: 
+          if (teamADocument != null) {
+            functions.logger.log(`Team A Returned: 
           ${teamADocument.id}, ${JSON.stringify(teamADocument)}`);
+          }
 
-           // Team A Name
-           const teamAName = teamADocument.get("name");
-           functions.logger.log(`Team A Name: ${teamAName}`);
+          // Team A Name
+          const teamAName = teamADocument.get("name");
+          functions.logger.log(`Team A Name: ${teamAName}`);
+
+          // Team A Club Id
+          let teamAClubDocument = null;
+          let teamACountyDocument = null;
+          let teamAClubId = teamADocument.get("club");
+          let teamACountyId= teamADocument.get("county");
+          let teamACrestUrl = null;
+          let teamAColors = null;
+          if (teamAClubId!=null && teamAClubId != undefined) {
+            teamAClubId = teamAClubId.id;
+            teamAClubDocument = await getClubDocument(teamAClubId);
+            functions.logger.log(`Team A Club Document : 
+          ${teamAClubDocument.id} : ${JSON.stringify(teamAClubDocument)}`);
+            teamACrestUrl = teamAClubDocument.get("crest");
+            functions.logger.log(`Club crest: ${teamACrestUrl}`);
+            teamAColors = teamAClubDocument.get("colors");
+            functions.logger.log(`Club Colors ${teamAColors}`);
+          } else if (teamACountyDocument !=null && teamACountyId != undefined) {
+            teamACountyId = teamACountyId.id;
+            teamACountyDocument = await getCountyDocument(teamACountyDocument);
+            functions.logger.log(`Team A County Document: 
+            ${teamACountyDocument.id} : 
+            ${JSON.stringify(teamACountyDocument)}`);
+            teamACrestUrl = teamACountyDocument.get("crest");
+            functions.logger.log(`Club crest: ${teamACrestUrl}`);
+            teamAColors = teamACountyDocument.get("colors");
+            functions.logger.log(`Club Colors ${teamAColors}`);
+          }
+
 
           /** **** TEAM B ******/
+
           // Team B Document ID
           const teamBId = game.get("teamB").id;
           functions.logger.log(`teamBDocRef: ${teamBId}`);
           // Team B Document
           const teamBDocument = await getTeamDocument(teamBId);
-          functions.logger.log(`Team A Returned: 
+          if (teamBDocument!=null) {
+            functions.logger.log(`Team A Returned: 
           ${teamBDocument.id}, ${JSON.stringify(teamBDocument)}`);
-           // Team A Name
-           const teamBName = teamBDocument.get("name");
-           functions.logger.log(`Team B Name: ${teamBName}`);
+          }
+          // Team B Name
+          const teamBName = teamBDocument.get("name");
+          functions.logger.log(`Team B Name: ${teamBName}`);
+
+
+          // Team B Club Id
+          let teamBClubDocument = null;
+          let teamBCountyDocument = null;
+          let teamBClubId = teamBDocument.get("club");
+          let teamBCountyId = teamBDocument.get("county");
+          let teamBCrestUrl = null;
+          let teamBColors = null;
+
+          if (teamBClubId!=null && teamBClubId != undefined) {
+            teamBClubId = teamBClubId.id;
+            teamBClubDocument = await getClubDocument(teamBClubId);
+            functions.logger.log(`Team B Club Document : 
+          ${teamBClubDocument.id} : ${JSON.stringify(teamBClubDocument)}`);
+            teamBCrestUrl = teamBClubDocument.get("crest");
+            functions.logger.log(`Club crest: ${teamBCrestUrl}`);
+            teamBColors = teamBClubDocument.get("colors");
+            functions.logger.log(`Club Colors ${teamBColors}`);
+          } else if (teamBCountyDocument !=null && teamBCountyId != undefined) {
+            teamBCountyId = teamBCountyId.id;
+            teamBCountyDocument = await getCountyDocument(teamBCountyDocument);
+            functions.logger.log(`Team B County Document: 
+            ${teamBCountyDocument.id} : 
+            ${JSON.stringify(teamBCountyDocument)}`);
+            teamBCrestUrl = teamBCountyDocument.get("crest");
+            functions.logger.log(`Club crest: ${teamBCrestUrl}`);
+            teamBColors = teamBCountyDocument.get("colors");
+            functions.logger.log(`Club Colors ${teamBColors}`);
+          }
 
           /** **** START TIME ******/
           const hour = game.get("dateTime").toDate().getHours();
@@ -122,7 +189,7 @@ const createTodaysGames =async function() {
             mins = `${mins}0`;
           }
           const startTime = `${hour}:${mins}`;
-          functions.logger.log(`Date Time: ${startTime}`);
+          functions.logger.log(`Game Time: ${startTime}`);
         } else {
           functions.logger.log(`Game ${doc.ref.path}: Does not exist`);
         }
@@ -212,4 +279,38 @@ const getTeamDocument = async function(teamId) {
   }
 };
 
+const getClubDocument = async function(clubId) {
+  try {
+    functions.logger.log(`Get Club Document: ${clubId}`);
+    const query = db.collection("Club").doc(clubId);
+    const querySnapshot = await query.get();
+    if (querySnapshot.empty) {
+      functions.logger.warn(`No Club with ref: ${clubId}`);
+      return null;
+    } else {
+      functions.logger.info(`Return Club: 
+      ${clubId}, ${JSON.stringify(querySnapshot)}`);
+      return querySnapshot;
+    }
+  } catch (e) {
+    functions.logger.log(`Exception: getClubDocument: ${e}`);
+  }
+};
 
+const getCountyDocument = async function(countyId) {
+  try {
+    functions.logger.log(`Get County Document: ${countyId}`);
+    const query = db.collection("County").doc(countyId);
+    const querySnapshot = await query.get();
+    if (querySnapshot.empty) {
+      functions.logger.warn(`No County with ref: ${countyId}`);
+      return null;
+    } else {
+      functions.logger.info(`Return County: 
+      ${countyId}, ${JSON.stringify(querySnapshot)}`);
+      return querySnapshot;
+    }
+  } catch (e) {
+    functions.logger.log(`Exception: getCountyDocument: ${e}`);
+  }
+};
