@@ -70,12 +70,12 @@ const createTodaysGames =async function() {
 
           const gameDocRef = doc.ref.path;
           functions.logger.log(`GameDocRef: ${gameDocRef}`);
-          const compDocRef = game.data().competition;
-          functions.logger.log(`compDocRef: ${compDocRef}`);
-          const teamADocRef = game.teamA.data().teamADocRef;
-          functions.logger.log(`teamADocRef: ${teamADocRef}`);
-          const teamBDocRef = game.get("teamB");
-          functions.logger.log(`teamBDocRef: ${teamBDocRef}`);
+          const compId = game.get("competition").id;
+          functions.logger.log(`compDocRef: ${compId}`);
+          const teamAId = game.get("teamA").id;
+          functions.logger.log(`teamADocRef: ${teamAId}`);
+          const teamBId = game.get("teamB").id;
+          functions.logger.log(`teamBDocRef: ${teamBId}`);
         } else {
           functions.logger.log(`Game ${doc.ref.path}: Does not exist`);
         }
