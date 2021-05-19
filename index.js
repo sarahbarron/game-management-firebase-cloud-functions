@@ -38,7 +38,7 @@ const createTodaysGames =async function() {
       // Return the document of each game
       for (const doc of games) {
         functions.logger.log(`Document found at path: ${doc.ref.path}`);
-        const game = await getGame(doc.ref.path);
+        const game = await getGameDocument(doc.ref.path);
 
         if (game != null || game !=undefined) {
           functions.logger.log(`Game Returned: 
@@ -68,14 +68,61 @@ const createTodaysGames =async function() {
           // let teamBcounty;
           // let gameId;
 
+          // Game Document Reference
           const gameDocRef = doc.ref.path;
           functions.logger.log(`GameDocRef: ${gameDocRef}`);
+
+          /** **** COMPETITION ******/
+
+          // Competition Id
           const compId = game.get("competition").id;
           functions.logger.log(`compDocRef: ${compId}`);
+
+          // Competition Document
+          const competitionDocument = await getCompetitionDocument(compId);
+          functions.logger.log(`Competition Returned: 
+          ${competitionDocument.id}, ${JSON.stringify(competitionDocument)}`);
+
+          // Competition name
+          const competitionName = competitionDocument.get("name");
+          functions.logger.log(`Competition Name: ${competitionName}`);
+
+
+          /** **** TEAM A ******/
+
+          // Team A Id
           const teamAId = game.get("teamA").id;
           functions.logger.log(`teamADocRef: ${teamAId}`);
+
+          // Team A Document
+          const teamADocument = await getTeamDocument(teamAId);
+          functions.logger.log(`Team A Returned: 
+          ${teamADocument.id}, ${JSON.stringify(teamADocument)}`);
+
+           // Team A Name
+           const teamAName = teamADocument.get("name");
+           functions.logger.log(`Team A Name: ${teamAName}`);
+
+          /** **** TEAM B ******/
+          // Team B Document ID
           const teamBId = game.get("teamB").id;
           functions.logger.log(`teamBDocRef: ${teamBId}`);
+          // Team B Document
+          const teamBDocument = await getTeamDocument(teamBId);
+          functions.logger.log(`Team A Returned: 
+          ${teamBDocument.id}, ${JSON.stringify(teamBDocument)}`);
+           // Team A Name
+           const teamBName = teamBDocument.get("name");
+           functions.logger.log(`Team B Name: ${teamBName}`);
+
+          /** **** START TIME ******/
+          const hour = game.get("dateTime").toDate().getHours();
+          let mins = game.get("dateTime").toDate().getMinutes();
+          if (mins<10) {
+            mins = `${mins}0`;
+          }
+          const startTime = `${hour}:${mins}`;
+          functions.logger.log(`Date Time: ${startTime}`);
         } else {
           functions.logger.log(`Game ${doc.ref.path}: Does not exist`);
         }
@@ -112,7 +159,7 @@ const getTodaysGames = async function() {
 };
 
 // Return a game document
-const getGame = async function(gameDocRefPath) {
+const getGameDocument = async function(gameDocRefPath) {
   try {
     functions.logger.log(`Get Game Document Ref Path: ${gameDocRefPath}`);
     const query = db.doc(gameDocRefPath);
@@ -125,6 +172,44 @@ const getGame = async function(gameDocRefPath) {
       return querySnapshot;
     }
   } catch (e) {
-    functions.logger.error(`Exception: getGame: ${e}`);
+    functions.logger.error(`Exception: getGameDocument: ${e}`);
   }
 };
+
+const getCompetitionDocument = async function(compId) {
+  try {
+    functions.logger.log(`Get Competition Document: ${compId}`);
+    const query = db.collection("Competition").doc(compId);
+    const querySnapshot = await query.get();
+    if (querySnapshot.empty) {
+      functions.logger.warn(`No Competition with ref: ${compId}`);
+      return null;
+    } else {
+      functions.logger.info(`Return Competition: 
+      ${compId}, ${JSON.stringify(querySnapshot)}`);
+      return querySnapshot;
+    }
+  } catch (e) {
+    functions.logger.log(`Exception: getCompetitionDocument: ${e}`);
+  }
+};
+
+const getTeamDocument = async function(teamId) {
+  try {
+    functions.logger.log(`Get Team Document: ${teamId}`);
+    const query = db.collection("Team").doc(teamId);
+    const querySnapshot = await query.get();
+    if (querySnapshot.empty) {
+      functions.logger.warn(`No Team with ref: ${teamId}`);
+      return null;
+    } else {
+      functions.logger.info(`Return Team: 
+      ${teamId}, ${JSON.stringify(querySnapshot)}`);
+      return querySnapshot;
+    }
+  } catch (e) {
+    functions.logger.log(`Exception: getTeamDocument: ${e}`);
+  }
+};
+
+
