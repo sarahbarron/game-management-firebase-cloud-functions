@@ -6,7 +6,7 @@ const {
   getGradeDocument,
   getCountyDocument,
   getTeamDocument,
-  getClubDocument} = require("./getFirestoreDocuments");
+  getClubDocument} = require("./databaseHelpers");
 
 
 const getCompetitionDetails = async function(compId) {
@@ -26,6 +26,7 @@ const getCompetitionDetails = async function(compId) {
       let gradeLevel = null;
       let isNational = null;
       let competitionCounty = null;
+
 
       // Competition name
 
@@ -67,7 +68,7 @@ const getCompetitionDetails = async function(compId) {
         }
 
         // Grade Level
-        const compGradeLevel = await gradeDocRef.get("level");
+        const compGradeLevel = await await gradeDocument.get("level");
         if (compGradeLevel != null && compGradeLevel != undefined) {
           gradeLevel = compGradeLevel;
           functions.logger.log(`Grade Level ${gradeLevel}`);

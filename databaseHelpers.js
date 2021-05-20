@@ -11,6 +11,7 @@ try {
 }
 // Initialize database
 const db = admin.firestore();
+const rtdb = admin.database();
 
 // Get Todays Games
 const getTodaysGames = async function() {
@@ -149,6 +150,114 @@ const getGradeDocument = async function(gradeId) {
   }
 };
 
+const createGameInRealtimeDB = async function(gameId, club, county) {
+  try {
+    if (club==undefined) {
+      club = null;
+    }
+    if (county == undefined) {
+      county = null;
+    }
+    if (gameId!=null && gameId!=undefined) {
+      return await rtdb.ref(`games/${gameId}`).set({
+        isAClubGame: club,
+        isACountyGame: county,
+      });
+    }
+    return null;
+  } catch (e) {
+    functions.logger.log(`Exception: createGameInRealtimeDB ${e}`);
+  }
+};
+const createCompetitionInRealtimeDB = async function(gameId, compId,
+    compName, isNational, compCounty) {
+  try {
+    if ( compId== undefined) {
+      compId=null;
+    }
+    if ( compName== undefined) {
+      compName =null;
+    }
+    if ( isNational== undefined) {
+      isNational =null;
+    }
+    if ( compCounty== undefined) {
+      compCounty=null;
+    }
+
+    if (gameId!=null && gameId!=undefined) {
+      return await rtdb.ref(`games/${gameId}/competition`).set({
+        competitionId: compId,
+        competitionName: compName,
+        isNational: isNational,
+        competitionCounty: compCounty,
+      });
+    }
+
+    return null;
+  } catch (e) {
+    functions.logger.log(`Exception: createGameInRealTimeDB: ${e}`);
+  }
+};
+
+const createTeamInRealtimeDB = async function(teamAOrB, gameId, teamId,
+    name, crest, colors, clubId, countyId) {
+  try {
+    if (gameId!=null && gameId!=undefined) {
+      if (teamId==undefined) {
+        teamId = null;
+      }
+      if (name==undefined) {
+        teamId = null;
+      }
+      if (crest ==undefined) {
+        crest = null;
+      }
+      if (colors==undefined) {
+        colors=null;
+      }
+      if (clubId==undefined) {
+        clubId = null;
+      }
+      if (countyId==undefined) {
+        countyId = null;
+      }
+      return await rtdb.ref(`games/${gameId}/${teamAOrB}`).set({
+        teamId: teamId,
+        teamName: name,
+        crest: crest,
+        colors: colors,
+        clubId: clubId,
+        countyId: countyId,
+      });
+    }
+  } catch (e) {
+    functions.logger.log(`Exception: createTeamInRealtimeDB: ${e}`);
+  }
+};
+
+const createGradeInRealtimeDB = async function(gameId,
+    name, level) {
+  try {
+    if (name == undefined) {
+      name = null;
+    }
+    if (level == undefined) {
+      level = null;
+    }
+    if (gameId !=null && gameId !=undefined) {
+      return await rtdb.ref(`games/${gameId}/grade`).set({
+        gradeName: name,
+        gradeLevel: level,
+      });
+    }
+    return null;
+  } catch (e) {
+    functions.logger.log(`Exception: createGradeInRealTimeDB: ${e}`);
+  }
+};
 module.exports={getTodaysGames, getGameDocument, getTeamDocument,
   getClubDocument, getCountyDocument, getCompetitionDocument,
-  getGradeDocument};
+  getGradeDocument, createCompetitionInRealtimeDB,
+  createGradeInRealtimeDB, createGameInRealtimeDB,
+  createTeamInRealtimeDB};

@@ -4,7 +4,11 @@ const functions = require("firebase-functions");
 const {
   getTodaysGames,
   getGameDocument,
-} = require("./getFirestoreDocuments");
+  createGradeInRealtimeDB,
+  createCompetitionInRealtimeDB,
+  createGameInRealtimeDB,
+  createTeamInRealtimeDB,
+} = require("./databaseHelpers");
 const {getCompetitionDetails} = require("./dailyHelpers");
 const {
   getTeamDetails,
@@ -32,40 +36,6 @@ exports.scheduledDailyGetGames=functions.pubsub.schedule("00 01 * * *")
 
 // Create realtime database references for todays games
 const createTodaysGames =async function() {
-
-// competition 
-  let compName = null;
-  let sportType = null;
-  let isNational = null;
-  let gradeName = null;
-  let gradeLevel = null;
-  let compCounty = null;
-
-  // team A
-  let teamAName = null;
-  let teamAClubDocumentRef = null;
-  let teamACountyDocumentRef = null;
-
-  // team A Club/County
-  let teamACrestUrl = null;
-  let teamAColors = null;
-  let teamAclubId = null;
-  let teamAcountyId = null;
-
-  // team B
-  let teamBName = null;
-  let teamBClubDocumentRef = null;
-  let teamBCountyDocumentRef = null;
-
-  // team B Club/County
-  let teamBCrestUrl = null;
-  let teamBColors = null;
-  let teamBclubId = null;
-  let teamBcountyId = null;
-
-  let isAClubGame = false;
-  let isACountyGame = false;
-
   // Return Todays Games
   try {
     // Return todays games
@@ -74,13 +44,46 @@ const createTodaysGames =async function() {
     if (games.length>0) {
       // Return the document of each game
       for (const doc of games) {
+        let gameId = null;
+        // competition
+        let compName = null;
+        let sportType = null;
+        let isNational = null;
+        let gradeName = null;
+        let gradeLevel = null;
+        let compInCounty = null;
+
+        // team A
+        let teamAName = null;
+        let teamAClubDocumentRef = null;
+        let teamACountyDocumentRef = null;
+
+        // team A Club/County
+        let teamACrestUrl = null;
+        let teamAColors = null;
+        let teamAclubId = null;
+        let teamAcountyId = null;
+
+        // team B
+        let teamBName = null;
+        let teamBClubDocumentRef = null;
+        let teamBCountyDocumentRef = null;
+
+        // team B Club/County
+        let teamBCrestUrl = null;
+        let teamBColors = null;
+        let teamBclubId = null;
+        let teamBcountyId = null;
+
+        let isAClubGame = false;
+        let isACountyGame = false;
         functions.logger.log(`Document found at path: ${doc.ref.path}`);
         const game = await getGameDocument(doc.ref.path);
 
         if (game != null || game !=undefined) {
           /** ***GAME ***** */
           // Game Id
-          const gameId = game.id;
+          gameId = game.id;
           functions.logger.log(`Game Returned: 
           ${gameId}, ${JSON.stringify(game)}`);
 
@@ -101,16 +104,19 @@ const createTodaysGames =async function() {
             isNational = compDetails[2];
             gradeName = compDetails[3];
             gradeLevel = compDetails[4];
-            compCounty = compDetails[5];
-          }
-
-          /* Boolean values to distinguish 
+            compInCounty = compDetails[5];
+            /* Boolean values to distinguish
           between a club or county game
           */
-          if(compCounty != null){
-            isACountyGame = true;
-          }else{
-            isAClubGame = true;
+            if (compInCounty == null) {
+              isACountyGame = true;
+              functions.logger.log(`BOOLEAN INSIDE compInCounty != null: county 
+              ${isACountyGame}, club ${isAClubGame}`);
+            } else {
+              isAClubGame = true;
+              functions.logger.log(`BOOLEAN INSIDE ELSE: county 
+              ${isACountyGame}, club ${isAClubGame}`);
+            }
           }
 
           functions.logger.log(`Return from Competition Details\n
@@ -119,7 +125,7 @@ const createTodaysGames =async function() {
           isNational: ${isNational}\n
           gradeName: ${gradeName}\n
           Grade Level: ${gradeLevel}\n
-          Within County: ${compCounty}`);
+          Within County: ${compInCounty}`);
 
           /** **** TEAM A ******/
           const teamAId = game.get("teamA").id;
@@ -199,6 +205,16 @@ const createTodaysGames =async function() {
           }
           const startTime = `${hour}:${mins}`;
           functions.logger.log(`Game Time: ${startTime}`);
+
+          // Write to the Realtime DB
+          await createGameInRealtimeDB(gameId, isAClubGame, isACountyGame);
+          await createCompetitionInRealtimeDB(gameId, compId,
+              compName, isNational, compInCounty);
+          await createGradeInRealtimeDB(gameId,
+              gradeName, gradeLevel);
+          await createTeamInRealtimeDB("teamA", gameId, teamAId,
+              teamAName, teamACrestUrl, teamAColors, teamAclubId,
+              teamAcountyId);
         } else {
           functions.logger.log(`Game ${doc.ref.path}: Does not exist`);
         }
