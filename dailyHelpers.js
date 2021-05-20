@@ -6,9 +6,110 @@ const {
   getGradeDocument,
   getCountyDocument,
   getTeamDocument,
-  getClubDocument} = require("./databaseHelpers");
+  getClubDocument,
+  createGameInRealtimeDB,
+  createGradeInRealtimeDB,
+  createCompetitionInRealtimeDB,
+  createTeamInRealtimeDB,
+  getTodaysGames,
+  getGameDocument,
+  createGameTimesInRealtimeDB,
+} = require("./databaseHelpers");
 
 
+// Create realtime database references for todays games
+const createTodaysGames =async function() {
+  // Return Todays Games
+  try {
+    // Return todays games
+    const games = await getTodaysGames();
+    functions.logger.info(`games docs returned: ${games.length}`);
+    if (games.length>0) {
+      // Create an entry for each game in the realtime db
+      for (const doc of games) {
+        functions.logger.log(`Document found at path: ${doc.ref.path}`);
+
+        // Return the document for the game
+        const game = await getGameDocument(doc.ref.path);
+
+        if (game != null || game !=undefined) {
+          functions.logger.log(`Game Returned: 
+          ${game.id}, ${JSON.stringify(game)}`);
+
+          // Create the games competition
+          await createCompetition(game);
+
+          // Create the teams
+          await createTeam("teamA", game);
+          await createTeam("teamB", game);
+
+          // Create times
+          await createTimes(game);
+        } else {
+          functions.logger.log(`Game ${doc.ref.path}: Does not exist`);
+        }
+      }
+    } else {
+      functions.logger.log("There are no games today");
+    }
+    return null;
+  } catch (e) {
+    functions.logger.warn(`Exception: createTodaysGames: ${e}`);
+  }
+};
+
+// Create a competition and details for a game in realtime DB
+const createCompetition = async function(game) {
+  // competition
+  let gameId=null;
+  let compName = null;
+  let sportType = null;
+  let isNational = null;
+  let gradeName = null;
+  let gradeLevel = null;
+  let compInCounty = null;
+  let isAClubGame = false;
+  let isACountyGame = false;
+  try {
+    if (game!=null && game!=undefined) {
+      gameId=game.id;
+      const compId = game.get("competition").id;
+      functions.logger.log(`compDocRef: ${compId}`);
+
+      const compDetails = await getCompetitionDetails(compId);
+      functions.logger.log(compDetails);
+      if (compDetails!=null || compDetails!=undefined) {
+        compName = compDetails[0];
+        sportType = compDetails[1];
+        isNational = compDetails[2];
+        gradeName = compDetails[3];
+        gradeLevel = compDetails[4];
+        compInCounty = compDetails[5];
+        /* Boolean values to distinguish
+    between a club or county game
+    */
+        if (compInCounty == null) {
+          isACountyGame = true;
+        } else {
+          isAClubGame = true;
+        }
+      }
+
+      // Write to the Realtime DB
+      await createGameInRealtimeDB(gameId, isAClubGame,
+          isACountyGame, sportType);
+      await createCompetitionInRealtimeDB(gameId, compId,
+          compName, isNational, compInCounty);
+      await createGradeInRealtimeDB(gameId,
+          gradeName, gradeLevel);
+    }
+    return null;
+  } catch (e) {
+    functions.logger.warn("Exception: createCompetition"+e);
+  }
+};
+
+// Get the competition details needed for the realtime DB
 const getCompetitionDetails = async function(compId) {
   // Competition Document
   try {
@@ -26,7 +127,6 @@ const getCompetitionDetails = async function(compId) {
       let gradeLevel = null;
       let isNational = null;
       let competitionCounty = null;
-
 
       // Competition name
 
@@ -118,6 +218,63 @@ const getCompetitionDetails = async function(compId) {
 };
 
 
+// Create team and details needed in the realtime db
+const createTeam = async function(teamAOrB, game) {
+  try {
+    if (game!=null && game!=undefined) {
+      let teamName = null;
+      let teamClubDocumentRef = null;
+      let teamCountyDocumentRef = null;
+      let teamCrestUrl = null;
+      let teamColors = null;
+      let teamClubId = null;
+      let teamCountyId = null;
+
+      const teamId = game.get(`${teamAOrB}`).id;
+      functions.logger.log(`team: ${teamAOrB}: 
+      teamDocRef: ${teamId}`);
+      const teamDetails = await getTeamDetails(teamId);
+      if (teamDetails != null && teamDetails !=undefined) {
+        teamName = teamDetails[0];
+        teamClubDocumentRef = teamDetails[1];
+        teamCountyDocumentRef = teamDetails[2];
+      }
+      functions.logger.log(`${teamAOrB} Details: ${teamName}, 
+      ${teamClubDocumentRef}, ${teamCountyDocumentRef}`);
+
+      if (teamClubDocumentRef != null &&
+        teamClubDocumentRef!=undefined) {
+        teamClubId = teamClubDocumentRef.id;
+        const clubDetails = await getClubDetails(teamClubId);
+        if (clubDetails!=null && clubDetails != undefined) {
+          teamCrestUrl = clubDetails[0];
+          teamColors = clubDetails[1];
+        }
+      } else if (teamCountyDocumentRef !=null &&
+        teamCountyDocumentRef!=undefined) {
+        teamCountyId = teamCountyDocumentRef.id;
+        const countyDetails = await getCountyDetails(teamCountyId);
+        if (countyDetails!=null && countyDetails!=undefined) {
+          teamCrestUrl = countyDetails[0];
+          teamColors = countyDetails[1];
+        }
+      }
+
+      functions.logger.log(`Club: ${teamClubId}: County: ${teamCountyId}
+      Colors: ${teamColors}, Crest: ${teamCrestUrl}`);
+      await createTeamInRealtimeDB(teamAOrB, game.id, teamId,
+          teamName, teamCrestUrl, teamColors, teamClubId,
+          teamCountyId);
+    } else {
+      functions.logger.warn(`Can't create ${teamAOrB}`);
+    }
+    return null;
+  } catch (e) {
+    functions.logger.log("Exception createTeam:"+e);
+  }
+};
+
+// return the team details needed for realtime db
 const getTeamDetails = async function(teamId) {
   try {
     // Team A Document
@@ -138,6 +295,8 @@ const getTeamDetails = async function(teamId) {
       const teamCountyDocRef = teamDocument.get("county");
       functions.logger.log(`team A County Id ${teamCountyDocRef}`);
       return [teamName, teamClubDocRef, teamCountyDocRef];
+    } else {
+      functions.logger.warn(`Can't get team : ${teamId}`);
     }
     return null;
   } catch (e) {
@@ -146,7 +305,7 @@ const getTeamDetails = async function(teamId) {
   }
 };
 
-
+// return the teams club details need for realtime DB
 const getClubDetails = async function(documentId) {
   try {
     const clubDocument = await getClubDocument(documentId);
@@ -155,6 +314,8 @@ const getClubDetails = async function(documentId) {
       const colors = clubDocument.get("colors");
 
       return [crestUrl, colors];
+    } else {
+      functions.logger.warn(`Cant get club: ${documentId}`);
     }
     return null;
   } catch (e) {
@@ -163,6 +324,7 @@ const getClubDetails = async function(documentId) {
   }
 };
 
+// Return the teams county details needed for realtimeDB
 const getCountyDetails = async function(documentId) {
   try {
     const countyDocument = await getCountyDocument(documentId);
@@ -170,12 +332,44 @@ const getCountyDetails = async function(documentId) {
       const crestUrl = countyDocument.get("crest");
       const colors = countyDocument.get("colors");
       return [crestUrl, colors];
+    } else {
+      functions.logger.warn(`Cant get county: ${documentId}`);
     }
+    return null;
   } catch (e) {
     functions.logger.log("Exception: getCountyDetails ${e}");
   }
 };
 
+/* Create start time only and timestamp for a
+game in the realtime DB
+*/
+const createTimes = async function(game) {
+  try {
+    if (game!=null && game !=undefined) {
+      const timestamp = game.get("dateTime");
+      if (timestamp!=null && timestamp!=undefined) {
+        const hour = game.get("dateTime").toDate().getHours();
+        let mins = game.get("dateTime").toDate().getMinutes();
+        if (mins<10) {
+          mins = `${mins}0`;
+        }
+        const startTime = `${hour}:${mins}`;
+        functions.logger.log(`Game Time: ${startTime}`);
+
+        await createGameTimesInRealtimeDB(game.id, timestamp, startTime);
+      } else {
+        functions.logger.log(`No timestamp for game: ${game.id}`);
+      }
+    } else {
+      functions.logger.log("Game does not exist");
+    }
+    return null;
+  } catch (e) {
+    functions.logger.log("Exception: createTimes: "+e);
+  }
+};
 
 module.exports={getCompetitionDetails, getTeamDetails,
-  getClubDetails, getCountyDetails};
+  getClubDetails, getCountyDetails, createCompetition,
+  createTeam, createTodaysGames, createTimes};
