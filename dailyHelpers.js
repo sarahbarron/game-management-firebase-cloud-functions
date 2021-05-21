@@ -30,7 +30,7 @@ const createTodaysGames =async function() {
         functions.logger.log(`Document found at path: ${doc.ref.path}`);
 
         // Return the document for the game
-        const game = await getGameDocument(doc.ref.path);
+        const game = await getGameDocument(doc.id);
 
         if (game != null || game !=undefined) {
           functions.logger.log(`Game Returned: 

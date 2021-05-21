@@ -37,13 +37,13 @@ const getTodaysGames = async function() {
 };
 
 // Return a game document
-const getGameDocument = async function(gameDocRefPath) {
+const getGameDocument = async function(gameId) {
   try {
-    functions.logger.log(`Get Game Document Ref Path: ${gameDocRefPath}`);
-    const query = db.doc(gameDocRefPath);
+    functions.logger.log(`Get Game Document Ref Path: ${gameId}`);
+    const query = db.collection("Game").doc(gameId);
     const querySnapshot = await query.get();
     if (querySnapshot.empty) {
-      functions.logger.warn(`No Game matching ${gameDocRefPath}`);
+      functions.logger.warn(`No Game matching ${gameId}`);
       return null;
     } else {
       functions.logger.info(`Game: ${querySnapshot.id}`);
@@ -51,6 +51,26 @@ const getGameDocument = async function(gameDocRefPath) {
     }
   } catch (e) {
     functions.logger.error(`Exception: getGameDocument: ${e}`);
+  }
+};
+
+
+// Return a member document
+const getMemberDocument = async function(memberId) {
+  try {
+    functions.logger.log(`Get Member Document: ${memberId}`);
+    const query = db.collection("Member").doc(memberId);
+    const querySnapshot = await query.get();
+    if (querySnapshot.empty) {
+      functions.logger.log(`No Member with id: ${memberId}`);
+      return null;
+    } else {
+      functions.logger.info(`Return Member:
+      ${memberId}, ${JSON.stringify(querySnapshot)}`);
+      return querySnapshot;
+    }
+  } catch (e) {
+    functions.logger.log(`Exception getMemberDocument ${e}`);
   }
 };
 
@@ -286,8 +306,45 @@ const createGameTimesInRealtimeDB = async function(
     functions.logger.log(`Exception createGameTimesInRealtimeDB: ${e}`);
   }
 };
+
+const updateLatestScoreInRealtimeDB = async function(
+    gameId, scoreTotalTitle, scoreTotal, teamName,
+    scoreType, playerName, time ) {
+  try {
+    if (teamName==undefined) {
+      teamName=null;
+    }
+    if (playerName==undefined) {
+      playerName=null;
+    }
+    if (scoreType==undefined) {
+      scoreType = null;
+    }
+    if (time==undefined) {
+      time=null;
+    }
+    if (scoreTotalTitle == undefined) {
+      scoreTotalTitle="unknownScoreTitle";
+    }
+    if (scoreTotal==undefined) {
+      scoreTotal = null;
+    }
+    if (gameId!=null && gameId!=undefined) {
+      return await rtdb.ref(`games/${gameId}`).update({
+        scoreTotalTitle: scoreTotal,
+        latestTeamName: teamName,
+        latestPlayer: playerName,
+        latestTime: time,
+        latestScoreType: scoreType,
+      });
+    }
+  } catch (e) {
+    functions.logger.log(`Exception updateLatestScoreInRealtimeDB: ${e}`);
+  }
+};
 module.exports={getTodaysGames, getGameDocument, getTeamDocument,
   getClubDocument, getCountyDocument, getCompetitionDocument,
   getGradeDocument, createCompetitionInRealtimeDB,
   createGradeInRealtimeDB, createGameInRealtimeDB,
-  createTeamInRealtimeDB, createGameTimesInRealtimeDB};
+  createTeamInRealtimeDB, createGameTimesInRealtimeDB,
+  getMemberDocument, updateLatestScoreInRealtimeDB};
