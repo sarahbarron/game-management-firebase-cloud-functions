@@ -28,7 +28,6 @@ exports.scoreTrigger=functions.firestore
     .onCreate(async (snap, context) =>{
       try {
         functions.logger.log("Update Score Details in Realtime DB");
-
         await updateScore(snap.data());
         return null;
       } catch (e) {

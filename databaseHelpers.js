@@ -12,7 +12,6 @@ try {
 // Initialize database
 const db = admin.firestore();
 const rtdb = admin.database();
-const increment = admin.firestore.FieldValue.increment(1);
 
 
 // Get Todays Games
@@ -317,7 +316,7 @@ const updateLatestScoreInRealtimeDB = async function(
       teamName=null;
     }
     if (playerName==undefined) {
-      playerName=null;
+      playerName="unknown";
     }
     if (scoreType==undefined) {
       scoreType = null;
@@ -340,53 +339,73 @@ const updateLatestScoreInRealtimeDB = async function(
 };
 
 
-const updateTeamAGoalsTotalScoreInRealtimeDB = async function(gameId) {
+const updateTeamAGoalsTotalScoreInRealtimeDB =
+async function(gameId, totalScore) {
   try {
-    if (gameId!=null && gameId!=undefined) {
+    if (gameId!=null && gameId!=undefined &&
+      totalScore!=null && totalScore!=undefined &&
+      totalScore>0) {
+      functions.logger.log("Team A Goals incremented by 1");
       return await rtdb.ref(`games/${gameId}`).update({
-        teamAGoals: increment,
+        teamAGoals: totalScore,
       });
     } else {
-      functions.logger.log(`Unable to update TeamAGoals ${gameId}`);
+      functions.logger.log(`Unable to update TeamAGoals ${gameId}: 
+      ${totalScore}`);
     }
   } catch (e) {
     functions.logger.log("Exception updateTeamAGoalsTotalScoreInRTDB"+e);
   }
 };
-const updateTeamAPointsTotalScoreInRealtimeDB = async function(gameId) {
+const updateTeamAPointsTotalScoreInRealtimeDB =
+async function(gameId, totalScore) {
   try {
-    if (gameId!=null && gameId!=undefined ) {
+    if (gameId!=null && gameId!=undefined &&
+      totalScore!=null && totalScore!=undefined &&
+      totalScore>0) {
+      functions.logger.log("Team A Points incremented by 1");
       return await rtdb.ref(`games/${gameId}`).update({
-        teamAPoints: increment,
+        teamAPoints: totalScore,
       });
     } else {
-      functions.logger.log(`Unable to update TeamAGoals ${gameId}`);
+      functions.logger.log(`Unable to update TeamAGoals ${gameId}:
+      ${totalScore}`);
     }
   } catch (e) {
     functions.logger.log("Exception updateTeamAGoalsTotalScoreInRTDB"+e);
   }
 };
-const updateTeamBGoalsTotalScoreInRealtimeDB = async function(gameId) {
+const updateTeamBGoalsTotalScoreInRealtimeDB =
+async function(gameId, totalScore) {
   try {
-    if (gameId!=null && gameId!=undefined) {
+    if (gameId!=null && gameId!=undefined &&
+      totalScore!=null && totalScore!=undefined &&
+      totalScore>0) {
+      functions.logger.log("Team B Goals incremented by 1");
       return await rtdb.ref(`games/${gameId}`).update({
-        teamBGoals: increment,
+        teamBGoals: totalScore,
       });
     } else {
-      functions.logger.log(`Unable to update TeamAGoals ${gameId}`);
+      functions.logger.log(`Unable to update TeamAGoals ${gameId}
+      ${totalScore}`);
     }
   } catch (e) {
     functions.logger.log("Exception updateTeamAGoalsTotalScoreInRTDB"+e);
   }
 };
-const updateTeamBPointsTotalScoreInRealtimeDB = async function(gameId) {
+const updateTeamBPointsTotalScoreInRealtimeDB =
+async function(gameId, totalScore) {
   try {
-    if (gameId!=null && gameId!=undefined) {
+    if (gameId!=null && gameId!=undefined &&
+      totalScore!=null && totalScore!=undefined &&
+      totalScore>0) {
+      functions.logger.log("Team B Points incremented by 1");
       return await rtdb.ref(`games/${gameId}`).update({
-        teamBPoints: increment,
+        teamBPoints: totalScore,
       });
     } else {
-      functions.logger.log(`Unable to update TeamAGoals ${gameId}`);
+      functions.logger.log(`Unable to update TeamAGoals ${gameId}
+      ${totalScore}`);
     }
   } catch (e) {
     functions.logger.log("Exception updateTeamAGoalsTotalScoreInRTDB"+e);
