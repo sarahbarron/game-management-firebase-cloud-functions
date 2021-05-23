@@ -14,6 +14,9 @@ const {
   getTodaysGames,
   getGameDocument,
   createGameTimesInRealtimeDB,
+  getTeamSheetPlayers,
+  createTeamSheetPlayersInRealtimeDB,
+  getMemberDocument, getTeamSheetDocument,
 } = require("./databaseHelpers");
 
 
@@ -218,80 +221,24 @@ const getCompetitionDetails = async function(compId) {
 };
 
 
-// Create team and details needed in the realtime db
-const createTeam = async function(teamAOrB, game) {
-  try {
-    if (game!=null && game!=undefined) {
-      let teamName = null;
-      let teamClubDocumentRef = null;
-      let teamCountyDocumentRef = null;
-      let teamCrestUrl = null;
-      let teamColors = null;
-      let teamClubId = null;
-      let teamCountyId = null;
-
-      const teamId = game.get(`${teamAOrB}`).id;
-      functions.logger.log(`team: ${teamAOrB}: 
-      teamDocRef: ${teamId}`);
-      const teamDetails = await getTeamDetails(teamId);
-      if (teamDetails != null && teamDetails !=undefined) {
-        teamName = teamDetails[0];
-        teamClubDocumentRef = teamDetails[1];
-        teamCountyDocumentRef = teamDetails[2];
-      }
-      functions.logger.log(`${teamAOrB} Details: ${teamName}, 
-      ${teamClubDocumentRef}, ${teamCountyDocumentRef}`);
-
-      if (teamClubDocumentRef != null &&
-        teamClubDocumentRef!=undefined) {
-        teamClubId = teamClubDocumentRef.id;
-        const clubDetails = await getClubDetails(teamClubId);
-        if (clubDetails!=null && clubDetails != undefined) {
-          teamCrestUrl = clubDetails[0];
-          teamColors = clubDetails[1];
-        }
-      } else if (teamCountyDocumentRef !=null &&
-        teamCountyDocumentRef!=undefined) {
-        teamCountyId = teamCountyDocumentRef.id;
-        const countyDetails = await getCountyDetails(teamCountyId);
-        if (countyDetails!=null && countyDetails!=undefined) {
-          teamCrestUrl = countyDetails[0];
-          teamColors = countyDetails[1];
-        }
-      }
-
-      functions.logger.log(`Club: ${teamClubId}: County: ${teamCountyId}
-      Colors: ${teamColors}, Crest: ${teamCrestUrl}`);
-      await createTeamInRealtimeDB(teamAOrB, game.id, teamId,
-          teamName, teamCrestUrl, teamColors, teamClubId,
-          teamCountyId);
-    } else {
-      functions.logger.warn(`Can't create ${teamAOrB}`);
-    }
-    return null;
-  } catch (e) {
-    functions.logger.log("Exception createTeam:"+e);
-  }
-};
-
 // return the team details needed for realtime db
 const getTeamDetails = async function(teamId) {
   try {
-    // Team A Document
+    // Team Document
     const teamDocument = await getTeamDocument(teamId);
     if (teamDocument != null && teamDocument != undefined) {
       functions.logger.log(`Team Returned: 
          ${teamDocument.id}, ${JSON.stringify(teamDocument)}`);
 
 
-      // Team A Name
+      // Team Name
       const teamName = teamDocument.get("name");
       functions.logger.log(`Team A Name: ${teamName}`);
 
-      // Team A Club
+      // Team Club
       const teamClubDocRef = teamDocument.get("club");
       functions.logger.log(`Team Club ${teamClubDocRef}`);
-      // Team A County
+      // Team County
       const teamCountyDocRef = teamDocument.get("county");
       functions.logger.log(`team A County Id ${teamCountyDocRef}`);
       return [teamName, teamClubDocRef, teamCountyDocRef];
@@ -341,6 +288,7 @@ const getCountyDetails = async function(documentId) {
   }
 };
 
+
 /* Create start time only and timestamp for a
 game in the realtime DB
 */
@@ -370,6 +318,90 @@ const createTimes = async function(game) {
   }
 };
 
+// Create team and details needed in the realtime db
+const createTeam = async function(teamAOrB, game) {
+  try {
+    if (game!=null && game!=undefined) {
+      let teamName = null;
+      let teamClubDocumentRef = null;
+      let teamCountyDocumentRef = null;
+      let teamCrestUrl = null;
+      let teamColors = null;
+      let teamClubId = null;
+      let teamCountyId = null;
+
+      const teamId = game.get(`${teamAOrB}`).id;
+      functions.logger.log(`team: ${teamAOrB}: 
+      teamDocRef: ${teamId}`);
+      const teamDetails = await getTeamDetails(teamId);
+      if (teamDetails != null && teamDetails !=undefined) {
+        teamName = teamDetails[0];
+        teamClubDocumentRef = teamDetails[1];
+        teamCountyDocumentRef = teamDetails[2];
+      }
+      functions.logger.log(`${teamAOrB} Details: ${teamName}, 
+      ${teamClubDocumentRef}, ${teamCountyDocumentRef}`);
+
+      if (teamClubDocumentRef != null &&
+        teamClubDocumentRef!=undefined) {
+        teamClubId = teamClubDocumentRef.id;
+        const clubDetails = await getClubDetails(teamClubId);
+        if (clubDetails!=null && clubDetails != undefined) {
+          teamCrestUrl = clubDetails[0];
+          teamColors = clubDetails[1];
+        }
+      } else if (teamCountyDocumentRef !=null &&
+        teamCountyDocumentRef!=undefined) {
+        teamCountyId = teamCountyDocumentRef.id;
+        const countyDetails = await getCountyDetails(teamCountyId);
+        if (countyDetails!=null && countyDetails!=undefined) {
+          teamCrestUrl = countyDetails[0];
+          teamColors = countyDetails[1];
+        }
+      }
+
+      functions.logger.log(`Club: ${teamClubId}: County: ${teamCountyId}
+      Colors: ${teamColors}, Crest: ${teamCrestUrl}`);
+      await createTeamInRealtimeDB(teamAOrB, game.id, teamId,
+          teamName, teamCrestUrl, teamColors, teamClubId,
+          teamCountyId);
+      await createTeamSheetPlayers(teamAOrB, teamId, game);
+    } else {
+      functions.logger.warn(`Can't create ${teamAOrB}`);
+    }
+    return null;
+  } catch (e) {
+    functions.logger.log("Exception createTeam:"+e);
+  }
+};
+
+const createTeamSheetPlayers = async function(teamAorB, teamId, game) {
+  try {
+    if (game !=null && game !=undefined) {
+      const players = await getTeamSheetPlayers(game.id, teamId);
+      functions.logger.log(`Teamsheet: Number Of Players: ${players.length}:
+       ${JSON.stringify(players)}`);
+      for (const doc of players) {
+        const teamsheetPlayer = await getTeamSheetDocument(doc.ref.path);
+        const player = await getMemberDocument(doc.id);
+        const firstName = player.get("firstName");
+        const lastName = player.get("lastName");
+        const playerName =`${firstName} ${lastName}`;
+        const jerseyNumber =teamsheetPlayer.get("jerseyNumber");
+        const onField = teamsheetPlayer.get("onField");
+        const fieldPosition = teamsheetPlayer.get("fieldPosition");
+
+        functions.logger.log(`Player on Teamsheet: 
+        ${playerName}, Jersey Num: ${jerseyNumber}, 
+        Field Position: ${fieldPosition}, On the Field: ${onField}`);
+        await createTeamSheetPlayersInRealtimeDB(game.id, teamAorB, doc.id,
+            playerName, jerseyNumber, fieldPosition, onField);
+      }
+    }
+  } catch (e) {
+    functions.logger.log(`Exception: createTeamSheet: ${e}`);
+  }
+};
 module.exports={getCompetitionDetails, getTeamDetails,
   getClubDetails, getCountyDetails, createCompetition,
-  createTeam, createTodaysGames, createTimes};
+  createTeam, createTodaysGames, createTimes, createTeamSheetPlayers};

@@ -411,6 +411,74 @@ async function(gameId, totalScore) {
     functions.logger.log("Exception updateTeamAGoalsTotalScoreInRTDB"+e);
   }
 };
+
+const getTeamSheetPlayers = async function(gameId, teamId) {
+  try {
+    if (gameId!=null && gameId!=undefined &&
+      teamId!=null && teamId!=undefined) {
+      functions.logger.log(`getTeamSheetPlayers: ${gameId}/${teamId} `);
+
+      const query = db.collection("Game")
+          .doc(gameId)
+          .collection("teamsheet")
+          .doc(teamId)
+          .collection("players");
+      const querySnapshot = await query.get();
+      if (querySnapshot.empty) {
+        functions.logger.warn("No Teamsheet Players");
+        return null;
+      } else {
+        const docs = querySnapshot.docs;
+        return docs;
+      }
+    }
+  } catch (e) {
+    functions.logger.log("Exception: getTeamSheetPlayer: "+e);
+  }
+};
+
+const createTeamSheetPlayersInRealtimeDB =
+async function(gameId, teamAorB, playerId,
+    playerName, jerseyNumber, fieldPosition, onField) {
+  try {
+    if (gameId!=null && gameId!=undefined &&
+      teamAorB!=null && teamAorB!=undefined) {
+      // for (const player of players) {
+      return await rtdb.ref(`games/${gameId}/${teamAorB}/players/${playerId}`)
+          .set({
+            playerName: playerName,
+            jerseyNumber: jerseyNumber,
+            fieldPosition: fieldPosition,
+            onField: onField,
+          });
+      // }
+    } else {
+      functions.logger.log(`Can't create team sheet players
+         ${gameId}, ${teamAorB}, ${playerName}`);
+      return null;
+    }
+  } catch (e) {
+    functions.logger.log("Exception: createTeamSheetPlayers: "+e);
+  }
+};
+
+const getTeamSheetDocument= async function(docRefPath) {
+  try {
+    functions.logger.log(`Get Teamsheet document ${docRefPath}`);
+    const query = db.doc(docRefPath);
+    const querySnapshot = await query.get();
+    if (querySnapshot.empty) {
+      functions.logger.log(`No teamsheet player ${docRefPath}`);
+      return null;
+    } else {
+      functions.logger.log(`Teamsheet Player ${querySnapshot.id}`);
+      return querySnapshot;
+    }
+  } catch (e) {
+    functions.logger.log(`Exception: getTeamSheetDocument ${e}`);
+  }
+};
+
 module.exports={getTodaysGames, getGameDocument, getTeamDocument,
   getClubDocument, getCountyDocument, getCompetitionDocument,
   getGradeDocument, createCompetitionInRealtimeDB,
@@ -420,4 +488,6 @@ module.exports={getTodaysGames, getGameDocument, getTeamDocument,
   updateTeamAGoalsTotalScoreInRealtimeDB,
   updateTeamBGoalsTotalScoreInRealtimeDB,
   updateTeamAPointsTotalScoreInRealtimeDB,
-  updateTeamBPointsTotalScoreInRealtimeDB};
+  updateTeamBPointsTotalScoreInRealtimeDB,
+  getTeamSheetPlayers, getTeamSheetDocument,
+  createTeamSheetPlayersInRealtimeDB};
