@@ -180,14 +180,16 @@ const createGameInRealtimeDB = async function(gameId, club, county, sportType) {
       county = null;
     }
     if (gameId!=null && gameId!=undefined) {
-      return await rtdb.ref(`games/${gameId}`).set({
+      await rtdb.ref(`games/${gameId}`).set({
         isAClubGame: club,
         isACountyGame: county,
+        sportType: sportType,
+      });
+      return rtdb.ref(`games/${gameId}/latest`).set({
         teamAGoals: 0,
         teamBGoals: 0,
         teamAPoints: 0,
         teamBPoints: 0,
-        sportType: sportType,
       });
     }
     return null;
@@ -312,21 +314,21 @@ const updateLatestScoreInRealtimeDB = async function(
     gameId, teamName,
     scoreType, playerName, time ) {
   try {
-    if (teamName==undefined) {
-      teamName=null;
+    if (teamName==undefined || teamName==null) {
+      teamName="";
     }
-    if (playerName==undefined) {
+    if (playerName==undefined || playerName == null) {
       playerName="unknown";
     }
-    if (scoreType==undefined) {
-      scoreType = null;
+    if (scoreType==undefined || scoreType == null) {
+      scoreType ="";
     }
-    if (time==undefined) {
-      time=null;
+    if (time==undefined || time == null) {
+      time="";
     }
 
     if (gameId!=null && gameId!=undefined) {
-      return await rtdb.ref(`games/${gameId}`).update({
+      return await rtdb.ref(`games/${gameId}/latest`).update({
         latestTeamName: teamName,
         latestPlayer: playerName,
         latestTime: time,
@@ -346,7 +348,7 @@ async function(gameId, totalScore) {
       totalScore!=null && totalScore!=undefined &&
       totalScore>0) {
       functions.logger.log("Team A Goals incremented by 1");
-      return await rtdb.ref(`games/${gameId}`).update({
+      return await rtdb.ref(`games/${gameId}/latest`).update({
         teamAGoals: totalScore,
       });
     } else {
@@ -364,7 +366,7 @@ async function(gameId, totalScore) {
       totalScore!=null && totalScore!=undefined &&
       totalScore>0) {
       functions.logger.log("Team A Points incremented by 1");
-      return await rtdb.ref(`games/${gameId}`).update({
+      return await rtdb.ref(`games/${gameId}/latest`).update({
         teamAPoints: totalScore,
       });
     } else {
@@ -382,7 +384,7 @@ async function(gameId, totalScore) {
       totalScore!=null && totalScore!=undefined &&
       totalScore>0) {
       functions.logger.log("Team B Goals incremented by 1");
-      return await rtdb.ref(`games/${gameId}`).update({
+      return await rtdb.ref(`games/${gameId}/latest`).update({
         teamBGoals: totalScore,
       });
     } else {
@@ -400,7 +402,7 @@ async function(gameId, totalScore) {
       totalScore!=null && totalScore!=undefined &&
       totalScore>0) {
       functions.logger.log("Team B Points incremented by 1");
-      return await rtdb.ref(`games/${gameId}`).update({
+      return await rtdb.ref(`games/${gameId}/latest`).update({
         teamBPoints: totalScore,
       });
     } else {

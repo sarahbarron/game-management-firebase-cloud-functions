@@ -32,8 +32,11 @@ const updateScore = async function(score) {
 
 
       if (gameRef != null && gameRef != undefined) {
+        // get the game the score was in
         game = await getGameDocument(gameRef.id);
         functions.logger.log(`Game Returned: ${JSON.stringify(game)}`);
+
+        // get the member details of the player who scored
         if (memberRef!=null && memberRef != undefined) {
           player = await getMemberDocument(memberRef.id);
           if (player!=null && player !=undefined) {
@@ -43,12 +46,16 @@ const updateScore = async function(score) {
           }
           functions.logger.log(`Player: ${memberRef}: ${playerName}`);
         }
+
+        // get the team details of the team who have scored
         if (teamRef!=null && teamRef!=undefined) {
+          functions.logger.log(`TeamRef: ${teamRef} : ID: ${teamRef.path.id} `);
           team = await getTeamDocument(teamRef.id);
-          teamName = team.name;
+          teamName = team.get("name");
           functions.logger.log(`Team: ${teamRef} :${teamName}`);
         }
 
+        // Update the teams score
         const teamA = game.get("teamA");
         const teamB = game.get("teamB");
         if (teamA!=null && teamA!=undefined) {
@@ -76,13 +83,16 @@ const updateScore = async function(score) {
           scoreType=pointString;
         }
 
-        updateTotal(game, teamString, scoreType);
+        await updateTotal(game, teamString, scoreType);
 
+        // get the time of the Score
         if (timestamp!=null && timestamp!=undefined) {
           time = await getTimeFromTimestamp(timestamp);
         }
         functions.logger.log(`Score: ${game.id},
         ${time}, ${teamName}, ${playerName}, ${scoreType}`);
+
+        // Store the Scores details in the realtime database
         await updateLatestScoreInRealtimeDB(game.id, teamName,
             scoreType, playerName, time);
         return null;
@@ -123,10 +133,10 @@ const updateTotal = async function(game, team, score) {
       if (score==="Goal") {
         let totalScore = 0;
         const AGoals = game.get("teamATotalGoals");
-        functions.logger.log(`AGOALS : ${AGoals}`);
+        functions.logger.log(`A GOALS : ${AGoals}`);
         if (AGoals!=null && AGoals !=undefined &&
           AGoals>=0) {
-          totalScore = AGoals+1;
+          totalScore = AGoals;
         }
         functions.logger.log(`TeamATotalGoals ${totalScore}`);
         return await
@@ -137,7 +147,7 @@ const updateTotal = async function(game, team, score) {
         functions.logger.log(`A POINTS : ${APts}`);
 
         if (APts>=0) {
-          totalScore = APts+1;
+          totalScore = APts;
         }
         functions.logger.log(`TeamATotalPoints ${totalScore}`);
 
@@ -151,7 +161,7 @@ const updateTotal = async function(game, team, score) {
         functions.logger.log(`B GOALS : ${BGoals}`);
 
         if (BGoals>=0) {
-          totalScore = BGoals+1;
+          totalScore = BGoals;
         }
         functions.logger.log(`TeamBTotalGoals ${totalScore}`);
 
@@ -163,7 +173,7 @@ const updateTotal = async function(game, team, score) {
         functions.logger.log(`B POINTS : ${BPts} for gameId: ${game.id}}`);
 
         if (BPts>=0) {
-          totalScore = BPts+1;
+          totalScore = BPts;
         }
         functions.logger.log(`TeamBTotalPoints ${totalScore}`);
         return await
