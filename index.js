@@ -4,6 +4,8 @@ const {log} = require("firebase-functions/lib/logger");
 
 const {createTodaysGames} = require("./dailyHelpers");
 const {updateScore} = require("./scoreHelpers");
+const {deleteTodaysGames} = require("./databaseHelpers");
+
 
 /* Scheduled Daily fetch - gets today to todays games and creates
 and details of todays games in the realtime database*/
@@ -19,6 +21,18 @@ exports.scheduledDailyGetGames=functions.pubsub.schedule("00 01 * * *")
       }
     });
 
+/* Schedule Daily Delete of realtime database entries */
+exports.scheduledDailyDeleteGames=functions.pubsub.schedule("05 00 * * *")
+    .timeZone("Europe/Dublin")
+    .onRun(async (context) => {
+      try {
+        functions.logger.log("ScheduleDailyDeleteGames: 12:05 am");
+        await deleteTodaysGames();
+        return null;
+      } catch (e) {
+        functions.logger.log(`Exception: ScheduleDailyDeleteGames: ${e}`);
+      }
+    });
 /*
 When a score is added to firestore update the realtime
 database with any details needed
@@ -34,3 +48,4 @@ exports.scoreTrigger=functions.firestore
         log(`Exception: scoreTrigger ${e}`);
       }
     });
+

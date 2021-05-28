@@ -310,6 +310,7 @@ const createGameTimesInRealtimeDB = async function(
   }
 };
 
+
 const updateLatestScoreInRealtimeDB = async function(
     gameId, teamName,
     scoreType, playerName, time ) {
@@ -328,7 +329,13 @@ const updateLatestScoreInRealtimeDB = async function(
     }
 
     if (gameId!=null && gameId!=undefined) {
-      return await rtdb.ref(`games/${gameId}/latest`).update({
+      await rtdb.ref(`games/${gameId}/latest`).update({
+        latestTeamName: teamName,
+        latestPlayer: playerName,
+        latestTime: time,
+        latestScoreType: scoreType,
+      });
+      return await rtdb.ref(`games/${gameId}/scores/${Date()}`).set({
         latestTeamName: teamName,
         latestPlayer: playerName,
         latestTime: time,
@@ -481,6 +488,13 @@ const getTeamSheetDocument= async function(docRefPath) {
   }
 };
 
+const deleteTodaysGames = async function() {
+  try {
+    return await rtdb.ref("/games").set(null);
+  } catch (e) {
+    functions.logger.log(`Exception: deleteTodaysGame ${e}`);
+  }
+};
 module.exports={getTodaysGames, getGameDocument, getTeamDocument,
   getClubDocument, getCountyDocument, getCompetitionDocument,
   getGradeDocument, createCompetitionInRealtimeDB,
@@ -492,4 +506,4 @@ module.exports={getTodaysGames, getGameDocument, getTeamDocument,
   updateTeamAPointsTotalScoreInRealtimeDB,
   updateTeamBPointsTotalScoreInRealtimeDB,
   getTeamSheetPlayers, getTeamSheetDocument,
-  createTeamSheetPlayersInRealtimeDB};
+  createTeamSheetPlayersInRealtimeDB, deleteTodaysGames};

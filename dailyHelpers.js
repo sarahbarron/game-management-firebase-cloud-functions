@@ -402,6 +402,7 @@ const createTeamSheetPlayers = async function(teamAorB, teamId, game) {
     functions.logger.log(`Exception: createTeamSheet: ${e}`);
   }
 };
+
 module.exports={getCompetitionDetails, getTeamDetails,
   getClubDetails, getCountyDetails, createCompetition,
   createTeam, createTodaysGames, createTimes, createTeamSheetPlayers};
