@@ -2,7 +2,6 @@
 const functions = require("firebase-functions");
 // Import and initialize the Firebase Admin SDK.
 const admin = require("firebase-admin");
-
 // Initialize App
 try {
   admin.initializeApp();
@@ -17,14 +16,15 @@ const rtdb = admin.database();
 // Get Todays Games
 const getTodaysGames = async function() {
   try {
-    const localDate = new Date();
-    functions.logger.log("Date"+localDate);
-
-    const query = db.collection("Game");
-
-    const querySnapshot = await query.get();
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setDate(startDate.getDate()+1);
+    functions.logger.error(`Date: ${startDate} End: ${endDate}`);
+    const querySnapshot = await db.collection("Game")
+        .where("dateTime", ">=", startDate)
+        .where("dateTime", "<=", endDate).get();
     if (querySnapshot.empty) {
-      return null;
+      return [];
     } else {
       const docs = querySnapshot.docs;
       for (const doc of docs) {
@@ -335,7 +335,7 @@ const updateLatestScoreInRealtimeDB = async function(
         latestTime: time,
         latestScoreType: scoreType,
       });
-      return await rtdb.ref(`games/${gameId}/scores/${Date()}`).set({
+      return await rtdb.ref(`games/${gameId}/scores`).push().set({
         latestTeamName: teamName,
         latestPlayer: playerName,
         latestTime: time,
